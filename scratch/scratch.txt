@@ -1,0 +1,8 @@
+mp_max, mp_min = max(max_power), min(max_power)
+mp_norm = (max_power - mp_min)/(mp_max - mp_min)
+
+data=pd.read_csv(r'/content/drive/MyDrive/Colab Notebooks/maabarot_johnson_from_2010_04_22_to_2020_12_31a.csv', usecols=df1)
+df1 = ["timestamp","max_power"]
+only use max power
+
+https://colab.research.google.com/drive/1ePa87UQgG_Ux4cZThzgdxY1Ed2bbniKQ?usp=sharing
