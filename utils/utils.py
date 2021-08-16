@@ -26,10 +26,11 @@ def get_logger(
 
     if log_file is not None:
         # create handlers
-        f_handler = logging.FileHandler(os.path.join(log_file), mode="w+")
+        f_handler = logging.FileHandler(os.path.join(log_file), mode="a")
         # create formatters and add it to the handlers
         f_format = logging.Formatter(
-            "%(asctime)s:%(name)s->%(funcName)s: %(levelname)s:%(message)s"
+            "%(asctime)s:%(name)s->%(funcName)s: %(levelname)s:%(message)s",
+            "%H:%M:%S"
         )
         f_handler.setFormatter(f_format)
         # add handlers to the logger

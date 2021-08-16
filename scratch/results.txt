@@ -1,0 +1,6 @@
+gym dataset - order (2,0)
+RMSE t_2m:C: 0.5935000756353032
+RMSE global_rad:W: 3.1705472694558616
+RMSE precip_1h:mm: 0.0009711007513263206
+RMSE effective_cloud_cover:p: 15.892054167155004
+RMSE max_power: 486.3498510624713

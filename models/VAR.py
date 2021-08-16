@@ -6,6 +6,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
 from statsmodels.tsa.statespace.varmax import VARMAX
 import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
 
 import greenium.utils.data
 
@@ -61,12 +62,17 @@ class VARModel():
         real = self.dataclass.inverse_transform(real)
 
         fig, axs = plt.subplots(len(real.columns), 1)
+        myFmt = DateFormatter("%H:%M")
         for i, col in enumerate(real.columns):
             rmse = mean_squared_error(real[col].iloc[:num_hours], pred[col].iloc[:num_hours], squared=False)
-            print(f'RMSE {col}: {rmse}')
-            axs[i].plot(real.index[:num_hours], real[col].iloc[:num_hours], label='Real', c='b')
-            axs[i].plot(real.index[:num_hours], pred[col].iloc[:num_hours], label='Predicted', c='r')
-            axs[i].set_title(col)
+            self.logger.info(f'RMSE {col}: {rmse}')
+            axs[i].plot(real.index[:num_hours], real[col].iloc[:num_hours], label='Real' if i==0 else '_nolegend_', c='b')
+            axs[i].plot(real.index[:num_hours], pred[col].iloc[:num_hours], label='Predicted' if i==0 else '_nolegend_', c='r')
+            axs[i].text(.5, .9, col,
+                        horizontalalignment='center',
+                        verticalalignment='top',
+                        transform=axs[i].transAxes)
+            axs[i].xaxis.set_major_formatter(myFmt)
         fig.legend()
         fig.suptitle('Real v. Predicted values 24h')
         plt.tight_layout()

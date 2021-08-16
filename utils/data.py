@@ -161,10 +161,11 @@ class Data:
         fig.subplots_adjust(hspace=0)
         for ax, col in enumerate(self.df.columns):
             self.df[col].plot(ax=axs[ax])
-            axs[ax].set_title(col)
-            if col == self.df.columns[-1]:
-                break
-            else:
+            axs[ax].text(.5, .9, col,
+                         horizontalalignment='center',
+                         verticalalignment='top',
+                         transform=axs[ax].transAxes)
+            if col != self.df.columns[-1]:
                 axs[ax].set_xticklabels([])
 
         plt.show()
@@ -197,5 +198,21 @@ class Data:
                 tick.set_rotation(45)
             plt.show()
 
-    def dataframe(self):
-        return self.df
+    def FFT(self, axs=None):
+
+        if axs is None:
+            fig, axs = plt.subplots(len(self.df.columns), 1, sharex=True)
+            fig.subplots_adjust(hspace=0)
+        SAMPLE_RATE = 24*365 # h/year
+
+        for ax, col in enumerate(self.df.columns):
+            yf = np.fft.rfft(self.df[col])
+            xf = np.fft.rfftfreq(len(self.df[col]), 1/SAMPLE_RATE)
+            sns.lineplot(x=xf[xf < 800], y=np.abs(yf)[xf < 800], ax=axs[ax])
+            axs[ax].text(.5, .9, col,
+                         horizontalalignment='center',
+                         verticalalignment='top',
+                         transform=axs[ax].transAxes)
+            axs[ax].set_xlabel('Frequency $(year^{-1})$')
+
+        return axs
