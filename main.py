@@ -24,11 +24,6 @@ if __name__ == '__main__':
                                     resample=False,
                                     scaler=None)
 
-
-    raw_data.plot()
-    # stationary.ts_plot()
-    exit()
-
     # stationary.ts_plot(lags=24 * 7)
     # fig, axs = plt.subplots(nrows=len(raw_data.df.columns), ncols=2)
     # fig.subplots_adjust(hspace=0)
@@ -40,7 +35,7 @@ if __name__ == '__main__':
     #     axs[x][smaller].set_ylim(bottom=None, top=max_ylim)
     # plt.show()
 
-    var = VARModel(stationary, order=(2,0))
+    var = VARModel(stationary, order=(2, 0))
     var.train(train_percent=0.7)
     var.summary()
     # var.forecast()

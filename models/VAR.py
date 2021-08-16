@@ -2,7 +2,7 @@ import logging
 
 import pandas as pd
 import numpy as np
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.preprocessing import StandardScaler
 from statsmodels.tsa.statespace.varmax import VARMAX
 import matplotlib.pyplot as plt
@@ -65,13 +65,17 @@ class VARModel():
         myFmt = DateFormatter("%H:%M")
         for i, col in enumerate(real.columns):
             rmse = mean_squared_error(real[col].iloc[:num_hours], pred[col].iloc[:num_hours], squared=False)
+            mae = mean_absolute_error(real[col].iloc[:num_hours], pred[col].iloc[:num_hours])
             self.logger.info(f'RMSE {col}: {rmse}')
             axs[i].plot(real.index[:num_hours], real[col].iloc[:num_hours], label='Real' if i==0 else '_nolegend_', c='b')
             axs[i].plot(real.index[:num_hours], pred[col].iloc[:num_hours], label='Predicted' if i==0 else '_nolegend_', c='r')
-            axs[i].text(.5, .9, col,
-                        horizontalalignment='center',
+            axs[i].set_title(col)
+            axs[i].text(0, 0.95, f'RMSE: {rmse}\nMAE: {mae}',
+                        horizontalalignment='left',
                         verticalalignment='top',
-                        transform=axs[i].transAxes)
+                        fontsize=10,
+                        transform=axs[i].transAxes,
+                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
             axs[i].xaxis.set_major_formatter(myFmt)
         fig.legend()
         fig.suptitle('Real v. Predicted values 24h')
