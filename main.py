@@ -5,8 +5,25 @@ import os
 from datetime import date
 
 from utils.data import Data
+from utils.processing import perform_PCA
 from utils import utils
 from models.VAR import VARModel
+
+
+def show_fft(stationary: pd.DataFrame, raw_data: pd.DataFrame):
+    fig, axs = plt.subplots(nrows=len(raw_data.df.columns), ncols=2)
+    fig.subplots_adjust(hspace=0)
+    raw_data.FFT(axs=axs.T[0])
+    stationary.FFT(axs=axs.T[1])
+    axs[0][0].set_title('Raw Data')
+    axs[0][1].set_title('Stationarized Data')
+    fig.suptitle('FFT: Raw vs Stationary Data')
+    for x in range(len(axs)):
+        max_ylim = np.max([axs[x][0].get_ylim()[1], axs[x][1].get_ylim()[1]])
+        smaller = np.argmax([axs[x][0].get_ylim(), axs[x][1].get_ylim()])
+        axs[x][smaller].set_ylim(bottom=None, top=max_ylim)
+    plt.show()
+
 
 if __name__ == '__main__':
     LOGGER = utils.get_logger(
@@ -16,26 +33,52 @@ if __name__ == '__main__':
 
     # Get and normalize data
     raw_data = Data.get_data(datafile='data/4Y_Historical.csv',
-                             powerfile='data/gym_from_2010_04_06_to_2020_12_31.csv',
                              logger=LOGGER)
 
-    raw_data.df = raw_data.df.drop(columns=['diffuse_rad:W', 'direct_rad:W'])
-    stationary = raw_data.transform(lag=['hour', 'day'],
-                                    resample=False,
-                                    scaler=None)
+    # Get and normalize data
+    raw_data_gym = Data.get_data(datafile='data/4Y_Historical.csv',
+                                 powerfile='data/gym_from_2010_04_06_to_2020_12_31.csv',
+                                 logger=LOGGER)
 
-    # stationary.ts_plot(lags=24 * 7)
-    # fig, axs = plt.subplots(nrows=len(raw_data.df.columns), ncols=2)
-    # fig.subplots_adjust(hspace=0)
-    # raw_data.FFT(axs=axs.T[0])
-    # stationary.FFT(axs=axs.T[1])
-    # for x in range(len(axs)):
-    #     max_ylim = np.max([axs[x][0].get_ylim()[1], axs[x][1].get_ylim()[1]])
-    #     smaller = np.argmax([axs[x][0].get_ylim(), axs[x][1].get_ylim()])
-    #     axs[x][smaller].set_ylim(bottom=None, top=max_ylim)
-    # plt.show()
+    raw_data_johnson = Data.get_data(datafile='data/4Y_Historical.csv',
+                                     powerfile='data/maabarot_johnson_from_2010_04_22_to_2020_12_31.csv',
+                                     logger=LOGGER)
 
-    var = VARModel(stationary, order=(2, 0))
-    var.train(train_percent=0.7)
-    var.summary()
+    raw_data_johnson_gym = Data.get_data(datafile='data/4Y_Historical.csv',
+                                         powerfile='data/maabarot_johnson_from_2010_04_22_to_2020_12_31.csv',
+                                         logger=LOGGER)
+
+    gym_johnson = Data.get_data(datafile='data/4Y_Historical.csv',
+                                powerfile='data/maabarot_johnson_from_2010_04_22_to_2020_12_31.csv',
+                                logger=LOGGER)
+
+    raw_data_johnson_gym.df = pd.concat([raw_data_johnson.df, raw_data_gym.df['max_power']], axis=1, join='inner')
+    raw_data_johnson_gym.df.columns = np.concatenate((raw_data.df.columns, ['max_power_johnson', 'max_power_gym']))
+
+    gym_johnson.df = pd.concat([raw_data_gym.df['max_power'], raw_data_johnson.df['max_power']], axis=1, join='inner')
+    gym_johnson.df.columns = ['max_power_gym', 'max_power_johnson']
+
+    save_str = 'gym_10'
+    stationary = raw_data_gym.transform(lag=['hour', 'day'],
+                                        resample=False,
+                                        scaler=None)
+
+    if 'johnson_gym' in save_str:
+        stationary.df['max_power_gym'] = stationary.df['max_power_gym'].astype(np.float64)
+    else:
+        stationary.df['max_power'] = stationary.df['max_power'].astype(np.float64)
+
+    stationary.df = stationary.df.drop(columns=['diffuse_rad:W', 'direct_rad:W'])
+
+    # perform_PCA(stationary.df)
+
+    var = VARModel(stationary,
+                   order=(1, 0),
+                   # load=f'models/saved_models/var_{save_str}.pkl'
+                   )
+
+    var.fit()
+    var.predict(start='2017-01-03 00:00:00', end='2017-01-03 00:00:00')
+    # var.save(f'{save_str}.pkl', remove_data=False)
+    # var.summary(save=f'real_v_pred_{save_str}.png')
     # var.forecast()

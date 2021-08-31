@@ -42,5 +42,4 @@ def get_logger(
         s_format = logging.Formatter("%(levelname)s: %(name)s->%(funcName)s: %(message)s")
         s_handler.setFormatter(s_format)
         logger.addHandler(s_handler)
-
     return logger

@@ -4,3 +4,75 @@ RMSE global_rad:W: 3.1705472694558616
 RMSE precip_1h:mm: 0.0009711007513263206
 RMSE effective_cloud_cover:p: 15.892054167155004
 RMSE max_power: 486.3498510624713
+
+johnson dataset - order (2,0)
+RMSE t_2m:C: 0.4126059675644951
+RMSE global_rad:W: 16.827754800851647
+RMSE precip_1h:mm: 0.00213011844386965
+RMSE effective_cloud_cover:p: 14.734382499870167
+RMSE max_power: 4990.116889047234
+
+gym & Johnson - order (2,0)
+INFO: main.py->summary: RMSE t_2m:C: 0.38410411359995567
+INFO: main.py->summary: RMSE global_rad:W: 11.130591774652062
+INFO: main.py->summary: RMSE precip_1h:mm: 0.002960752412490921
+INFO: main.py->summary: RMSE effective_cloud_cover:p: 15.437340237207568
+INFO: main.py->summary: RMSE max_power_johnson: 1802.510462994858
+INFO: main.py->summary: RMSE max_power_gym: 1477.6579494352852
+gym & Johnson - order (2,0) - no rain
+INFO: main.py->summary: R2 t_2m:C: 0.9833274046319879
+INFO: main.py->summary: R2 global_rad:W: 0.9987037948701776
+INFO: main.py->summary: R2 precip_1h:mm: 0.0
+INFO: main.py->summary: R2 effective_cloud_cover:p: 0.34165171181842946
+INFO: main.py->summary: R2 max_power_johnson: 0.9894789883917962
+INFO: main.py->summary: R2 max_power_gym: 0.9867310009041607
+
+
+gym & johnson only - order (2,0)
+INFO: main.py->summary: RMSE max_power_gym: 1801.1524088760511
+INFO: main.py->summary: RMSE max_power_johnson: 1472.6706182986068
+
+gym - order 5
+INFO: main.py->summary: R2 t_2m:C: 0.9869909291466636
+INFO: main.py->summary: R2 global_rad:W: 0.9971077949655903
+INFO: main.py->summary: R2 precip_1h:mm: 0.4985522135671382
+INFO: main.py->summary: R2 effective_cloud_cover:p: 0.7314961271356771
+INFO: main.py->summary: R2 max_power: 0.6243836665730111
+INFO: main.py->summary: AIC: 887109.9758129672
+
+gym & Johnson - order (2,0) - with rain
+INFO: main.py->summary: R2 t_2m:C: 0.9858770344259381
+INFO: main.py->summary: R2 global_rad:W: 0.9972302899975088
+INFO: main.py->summary: R2 precip_1h:mm: 0.4410640114415044
+INFO: main.py->summary: R2 effective_cloud_cover:p: 0.6853313035314988
+INFO: main.py->summary: R2 max_power_johnson: 0.7393152831248659
+INFO: main.py->summary: R2 max_power_gym: 0.31644242765220576
+INFO: main.py->summary: AIC: 1319481.3525997964
+
+gym & Johnson order 3
+INFO: main.py->summary: R2 t_2m:C: 0.9864354723059292
+INFO: main.py->summary: R2 global_rad:W: 0.9970606308731201
+INFO: main.py->summary: R2 precip_1h:mm: 0.510414722531348
+INFO: main.py->summary: R2 effective_cloud_cover:p: 0.7499988749592974
+INFO: main.py->summary: R2 max_power_johnson: 0.8278546747133224
+INFO: main.py->summary: R2 max_power_gym: 0.6157875251684164
+INFO: main.py->summary: AIC: 1315958.300631529
+
+gym & Johnson order 5
+INFO: main.py->summary: R2 t_2m:C: 0.9872272823841899
+INFO: main.py->summary: R2 global_rad:W: 0.9968344286886389
+INFO: main.py->summary: R2 precip_1h:mm: 0.5482527003665691
+INFO: main.py->summary: R2 effective_cloud_cover:p: 0.7111312065966549
+INFO: main.py->summary: R2 max_power_johnson: 0.837136505318606
+INFO: main.py->summary: R2 max_power_gym: 0.6331986959179361
+INFO: main.py->summary: AIC: 1311600.2687952793
+
+gym & Johnson order 10
+INFO: main.py->summary: R2 t_2m:C: 0.9869549992762437
+INFO: main.py->summary: R2 global_rad:W: 0.9972737917231971
+INFO: main.py->summary: R2 precip_1h:mm: 0.5688404531065442
+INFO: main.py->summary: R2 effective_cloud_cover:p: 0.702717831497029
+INFO: main.py->summary: R2 max_power_johnson: 0.848244343461539
+INFO: main.py->summary: R2 max_power_gym: 0.6506019819621469
+INFO: main.py->summary: AIC 1307394.2296757195
+
