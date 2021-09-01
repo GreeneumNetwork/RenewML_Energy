@@ -8,6 +8,7 @@ from utils.data import Data
 from utils.processing import perform_PCA
 from utils import utils
 from models.VAR import VARModel
+from models.ARIMA import ARIMAModel
 
 
 def show_fft(stationary: pd.DataFrame, raw_data: pd.DataFrame):
@@ -58,27 +59,30 @@ if __name__ == '__main__':
     gym_johnson.df = pd.concat([raw_data_gym.df['max_power'], raw_data_johnson.df['max_power']], axis=1, join='inner')
     gym_johnson.df.columns = ['max_power_gym', 'max_power_johnson']
 
-    save_str = 'gym_10'
-    stationary = raw_data_gym.transform(lag=['hour', 'day'],
+    stationary = raw_data_gym.transform(lag=['hour', 'day', 'year'],
                                         resample=False,
                                         scaler=None)
+    save_str = 'gym_dif_year'
+    order = 10
 
     if 'johnson_gym' in save_str:
         stationary.df['max_power_gym'] = stationary.df['max_power_gym'].astype(np.float64)
     else:
         stationary.df['max_power'] = stationary.df['max_power'].astype(np.float64)
-
     stationary.df = stationary.df.drop(columns=['diffuse_rad:W', 'direct_rad:W'])
 
-    # perform_PCA(stationary.df)
-
     var = VARModel(stationary,
-                   order=(1, 0),
-                   # load=f'models/saved_models/var_{save_str}.pkl'
+                   order=(order, 0),
+                   # load=f'models/saved_models/var_{save_str}_{order}.pkl'
                    )
+    # arima = ARIMAModel(stationary)
 
     var.fit()
-    var.predict(start='2017-01-03 00:00:00', end='2017-01-03 00:00:00')
-    # var.save(f'{save_str}.pkl', remove_data=False)
-    # var.summary(save=f'real_v_pred_{save_str}.png')
+    var.predict(
+                start='2017-01-03 00:00:00',
+                end='2017-01-04 00:00:00',
+                save_png=f'real_v_pred_{save_str}_{order}.png'
+                )
+    var.save(f'{save_str}_order.pkl', remove_data=False)
+    var.summary()
     # var.forecast()

@@ -1,5 +1,4 @@
 import logging
-from abc import ABC
 
 import pandas as pd
 import numpy as np
@@ -45,7 +44,12 @@ class VARModel(VARMAX):
         return train_set, test_set
 
     def fit(self, **kwargs) -> object:
+        """
+        Inherits from MLEResults.fit()
 
+        :param kwargs:
+        :return:
+        """
         if self.load:
             self.model_result = VARMAXResults.load(self.load)
             self.logger.info(f'model loaded from {self.load}')
@@ -53,14 +57,13 @@ class VARModel(VARMAX):
 
         self.model_result = super(VARModel, self).fit(maxiter=1000, disp=False)
         self.logger.info('Trained and fit')
-        print(self.model_result.summary())
 
         return self.model_result
 
     def predict(self,
                 start: str, end: str,
                 plot: bool = True,
-                save: str = None):
+                save_png: str = None):
 
         """
         Predictions for in-sample dates.
@@ -69,7 +72,7 @@ class VARModel(VARMAX):
         """
         start = pd.to_datetime(start)
         end = pd.to_datetime(end)
-        num_hours = (end - start).astype('timedelta64[h]') / np.timedelta64(1, 'h')
+        num_hours = np.round((end-start).value/(60*60*10e8)).astype(int)
 
         pred = self.model_result.predict(start=start, end=end)
         real = self.train_set.loc[start:end]
@@ -91,12 +94,13 @@ class VARModel(VARMAX):
                           'precip_1h:mm': ('Precipitation', 'mm/hr')}
 
             for i, col in enumerate(real.columns):
-                rmse = np.sqrt(self.model_result.mse)
-                r2 = r2_score(real[col].iloc[:num_hours], pred[col].iloc[:num_hours])
-                self.logger.info(f'RMSE {col}: {rmse}')
-                time = real.index[:num_hours]
                 real_vals = real[col].iloc[:num_hours]
                 pred_vals = pred[col].iloc[:num_hours]
+                rmse = mean_squared_error(real_vals, pred_vals, squared=False)
+                mae = mean_absolute_error(real_vals, pred_vals)
+                r2 = r2_score(real_vals, pred_vals)
+                self.logger.info(f'RMSE {col}: {rmse}')
+                time = real.index[:num_hours]
                 if col == 'max_power':
                     real_vals /= 1000
                     pred_vals /= 1000
@@ -108,7 +112,8 @@ class VARModel(VARMAX):
                 axs[i].set_ylabel(label_dict[col][1], fontsize=8)
                 axs[i].set_ylim(
                     [None, np.amax([np.amax([real_vals, pred_vals]) * 1.4, np.amax([real_vals, pred_vals]) + 0.005])])
-                axs[i].text(0.1, 0.9, f'RMSE: {rmse:.3f}\n$R^2$: {r2:.3f}',
+                axs[i].text(0.1, 0.9, f'RMSE: {rmse:.3f}\n$R^2$: {r2:.3f}\n'
+                                      f'MAPE: {mae/(np.amax(real_vals)-np.amin(real_vals)):0.3f}',
                             horizontalalignment='left',
                             verticalalignment='top',
                             fontsize=8,
@@ -118,23 +123,46 @@ class VARModel(VARMAX):
                 if col != real.columns[-1]:
                     axs[i].set_xticks([])
 
-            self.logger.info(f'AIC: {self.model_result.aic}')
             axs[i].set_xlabel('Time (hr)')
             fig.legend()
             fig.suptitle('Real v. Predicted values 24h')
-            if save:
-                plt.savefig(f'scratch/figures/transparent/{save}', transparent=True)
+            if save_png:
+                plt.savefig(f'scratch/figures/transparent/{save_png}', transparent=True)
             plt.show()
 
         return pred, real
 
+    def simulate(self, params, nsimulations, **kwargs):
+
+        sim = super(VARModel, self).simulate(params, nsimulations, **kwargs)
+        return sim
+
     def summary(self):
 
-        print(self.model_result.summary())
         self.logger.info(f'AIC: {self.model_result.aic}')
-        self.logger.info(f'MSE: {self.model_result.mse}')
+        self.logger.info(f'Total MSE: {self.model_result.mse}')
+        print(self.model_result.summary())
+
+        residuals = self.model_result.resid
+        print(residuals.describe())
+
+        for col in residuals.columns:
+            fig, axs = plt.subplots(1, 2)
+            residuals[col].plot(ax=axs[0],
+                                title=f'Residuals for VAR Model order {self.order}')
+            kde = residuals[col].plot(ax=axs[1],
+                                      title=f'KDE of Residuals of VAR Model order {self.order}',
+                                      kind='kde')
+            axs[1].axvline(residuals[col].mean(), c='r')
+            axs[1].text(residuals[col].mean(), np.amax(axs[1].lines[0].get_ydata()),
+                        s=f'{residuals[col].mean():0.3e}',
+                        ha='left',
+                        va='bottom',
+                        )
+            axs[1].legend()
+            plt.show()
+
+
 
     def save(self, filename: str, remove_data: bool = False):
         self.model_result.save(f'models/saved_models/var_{filename}', remove_data=remove_data)
-
-    # def forecast(self):
