@@ -27,6 +27,9 @@ class VARModel(VARMAX):
         # model parameters
         self.order = order
 
+        self._init_var()
+
+    def _init_var(self):
         super(VARModel, self).__init__(
             self.train_set,
             order=self.order)
@@ -62,8 +65,10 @@ class VARModel(VARMAX):
 
     def predict(self,
                 start: str, end: str,
+                *args,
                 plot: bool = True,
-                save_png: str = None):
+                save_png: str = None,
+                **kwargs):
 
         """
         Predictions for in-sample dates.
@@ -74,11 +79,11 @@ class VARModel(VARMAX):
         end = pd.to_datetime(end)
         num_hours = np.round((end-start).value/(60*60*10e8)).astype(int)
 
-        pred = self.model_result.predict(start=start, end=end)
+        pred = self.model_result.predict(start=start, end=end, *args, **kwargs)
         real = self.train_set.loc[start:end]
         pred = pred.set_index(real.index)
         pred = self.dataclass.inverse_transform(pred)
-        real = self.dataclass.inverse_transform(real)
+        real = self.dataclass.raw_data.loc[start:end]
 
         if plot:
             # Plot predictions
@@ -94,20 +99,17 @@ class VARModel(VARMAX):
                           'precip_1h:mm': ('Precipitation', 'mm/hr')}
 
             for i, col in enumerate(real.columns):
-                real_vals = real[col].iloc[:num_hours]
-                pred_vals = pred[col].iloc[:num_hours]
+                real_vals = real[col].loc[start:end]
+                pred_vals = pred[col].loc[start:end]
                 rmse = mean_squared_error(real_vals, pred_vals, squared=False)
                 mae = mean_absolute_error(real_vals, pred_vals)
                 r2 = r2_score(real_vals, pred_vals)
                 self.logger.info(f'RMSE {col}: {rmse}')
-                time = real.index[:num_hours]
                 if col == 'max_power':
                     real_vals /= 1000
                     pred_vals /= 1000
-                axs[i].plot(time, real_vals,
-                            label='Real' if i == 0 else '_nolegend_', c='b')
-                axs[i].plot(time, pred_vals,
-                            label='Predicted' if i == 0 else '_nolegend_', c='r')
+                axs[i].plot(real_vals, label='Real' if i == 0 else '_nolegend_', c='b')
+                axs[i].plot(pred_vals, label='Predicted' if i == 0 else '_nolegend_', c='r')
                 axs[i].set_title(label_dict[col][0], y=1.0, pad=-14)
                 axs[i].set_ylabel(label_dict[col][1], fontsize=8)
                 axs[i].set_ylim(
@@ -127,7 +129,7 @@ class VARModel(VARMAX):
             fig.legend()
             fig.suptitle('Real v. Predicted values 24h')
             if save_png:
-                plt.savefig(f'scratch/figures/transparent/{save_png}', transparent=True)
+                plt.savefig(f'scratch/figures/transparent/varmax_{save_png}', transparent=True)
             plt.show()
 
         return pred, real
@@ -137,7 +139,7 @@ class VARModel(VARMAX):
         sim = super(VARModel, self).simulate(params, nsimulations, **kwargs)
         return sim
 
-    def summary(self):
+    def summary(self, plot=True):
 
         self.logger.info(f'AIC: {self.model_result.aic}')
         self.logger.info(f'Total MSE: {self.model_result.mse}')
@@ -146,21 +148,22 @@ class VARModel(VARMAX):
         residuals = self.model_result.resid
         print(residuals.describe())
 
-        for col in residuals.columns:
-            fig, axs = plt.subplots(1, 2)
-            residuals[col].plot(ax=axs[0],
-                                title=f'Residuals for VAR Model order {self.order}')
-            kde = residuals[col].plot(ax=axs[1],
-                                      title=f'KDE of Residuals of VAR Model order {self.order}',
-                                      kind='kde')
-            axs[1].axvline(residuals[col].mean(), c='r')
-            axs[1].text(residuals[col].mean(), np.amax(axs[1].lines[0].get_ydata()),
-                        s=f'{residuals[col].mean():0.3e}',
-                        ha='left',
-                        va='bottom',
-                        )
-            axs[1].legend()
-            plt.show()
+        if plot:
+            for col in residuals.columns:
+                fig, axs = plt.subplots(1, 2)
+                residuals[col].plot(ax=axs[0],
+                                    title=f'Residuals for VAR Model order {self.order}')
+                residuals[col].plot(ax=axs[1],
+                                    title=f'KDE of Residuals of VAR Model order {self.order}',
+                                    kind='kde')
+                axs[1].axvline(residuals[col].mean(), c='r')
+                axs[1].text(residuals[col].mean(), np.amax(axs[1].lines[0].get_ydata()),
+                            s=f'{residuals[col].mean():0.3e}',
+                            ha='left',
+                            va='bottom',
+                            )
+                axs[1].legend()
+                plt.show()
 
 
 

@@ -101,12 +101,15 @@ class Data:
 
         newcls.lags = lags
         # apply differencing
-        diff = lambda x, distance: [x[i + distance] - x[i] for i in range(len(x) - distance)]
+        diff = lambda x, i_l, i_lag: [x[i] - x[i - i_lag] for i in range(i_l, len(x))]
         index = transformed.index
+        l = 0
         for lag_num in newcls.lags:
-            transformed = transformed.apply(lambda x: diff(x, lag_num), axis=0)
-            index = index[lag_num:]
-            transformed.index = index
+            l += lag_num
+            new = transformed.apply(lambda x: diff(x, l, lag_num), axis=0)
+            new.index = index[l:]
+            transformed.loc[new.index] = new
+
         # apply scaling
         if newcls.scaler == 'standard':
             newcls.scaler_ = StandardScaler()
@@ -127,10 +130,20 @@ class Data:
 
         # prepend dataframe with initial values
         start_idx = self.raw_data.index.get_loc(df.index[0])
-        x_i = pd.concat([self.raw_data.iloc[start_idx - np.max(self.lags):start_idx], df], join='inner')
-        invert_diff = lambda x, distance: [x[i] + x[i - distance] for i in range(len(x))]
-        for lag_num in self.lags:
-            inverted = x_i.apply(lambda x: invert_diff(x, lag_num), axis=0)
+        x_i = pd.concat([self.raw_data.iloc[start_idx - np.max(self.lags):start_idx], df], join='inner', axis=0)
+
+        # invert_diff = lambda x, distance: [x[i] + x[i - distance] for i in range(len(x))]
+        def invert_diff(x: pd.Series, i_l: int, i_lag: int):
+            arr = x.values
+            for i, val in enumerate(x.values[i_l:], start=i_l):
+                s = val + arr[i - i_lag]
+                arr[i] = s
+            return pd.Series(data=arr, index=x.index)
+
+        l = np.sum(self.lags)
+        for lag_num in reversed(self.lags):
+            inverted = x_i.apply(lambda x: invert_diff(x, l, lag_num), axis=0)
+            l -= lag_num
 
         return inverted
 
@@ -203,11 +216,11 @@ class Data:
         if axs is None:
             fig, axs = plt.subplots(len(self.df.columns), 1, sharex=True)
             fig.subplots_adjust(hspace=0)
-        SAMPLE_RATE = 24*365 # h/year
+        SAMPLE_RATE = 24 * 365  # h/year
 
         for ax, col in enumerate(self.df.columns):
             yf = np.fft.rfft(self.df[col])
-            xf = np.fft.rfftfreq(len(self.df[col]), 1/SAMPLE_RATE)
+            xf = np.fft.rfftfreq(len(self.df[col]), 1 / SAMPLE_RATE)
             sns.lineplot(x=xf[xf < 800], y=np.abs(yf)[xf < 800], ax=axs[ax])
             axs[ax].text(.5, .9, col,
                          horizontalalignment='center',

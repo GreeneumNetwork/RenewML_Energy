@@ -67,6 +67,16 @@ INFO: main.py->summary: R2 max_power_johnson: 0.837136505318606
 INFO: main.py->summary: R2 max_power_gym: 0.6331986959179361
 INFO: main.py->summary: AIC: 1311600.2687952793
 
+gym order 10
+INFO: var.py->fit: model loaded from models/saved_models/var_gym_10.pkl
+INFO: var.py->predict: RMSE t_2m:C: 0.5610472648652816
+INFO: var.py->predict: RMSE global_rad:W: 22.65078840950496
+INFO: var.py->predict: RMSE precip_1h:mm: 0.20587220834249026
+INFO: var.py->predict: RMSE effective_cloud_cover:p: 9.733830783554595
+INFO: var.py->predict: RMSE max_power: 10597.865442934642
+INFO: var.py->summary: AIC: 883866.5573182735
+INFO: var.py->summary: Total MSE: 10532250.594713956
+
 gym & Johnson order 10
 INFO: main.py->summary: R2 t_2m:C: 0.9869549992762437
 INFO: main.py->summary: R2 global_rad:W: 0.9972737917231971
@@ -75,4 +85,30 @@ INFO: main.py->summary: R2 effective_cloud_cover:p: 0.702717831497029
 INFO: main.py->summary: R2 max_power_johnson: 0.848244343461539
 INFO: main.py->summary: R2 max_power_gym: 0.6506019819621469
 INFO: main.py->summary: AIC 1307394.2296757195
+
+residuals for ARIMA - order (0,0,0)
+count    2.599100e+04
+mean    -2.177419e-14
+std      5.203370e+03
+min     -5.303227e+04
+25%     -4.352129e+02
+50%     -1.155951e+00
+75%      4.437919e+02
+max      5.316260e+04
+dtype: float64
+INFO: arima.py->summary: AIC: 756805.1046860038
+INFO: arima.py->summary: Total MSE: 27074018.40645361
+INFO: arima.py->predict: RMSE max_power: 10154.073177262451
+
+ARIMA - order (10, 0, 0)
+INFO: arima.py->summary: AIC: 514740.90320061444
+INFO: arima.py->summary: Total MSE: 23333953.895682536
+INFO: arima.py->predict: RMSE max_power: 10252.333683046021
+
+ARIMA - order (1,0,0)
+INFO: arima.py->summary: AIC: 517424.24242739246
+INFO: arima.py->summary: Total MSE: 25891003.89303733
+INFO: arima.py->predict: RMSE max_power: 10601.167454071607
+
+
 
