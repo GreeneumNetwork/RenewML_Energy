@@ -79,11 +79,11 @@ class VARModel(VARMAX):
         end = pd.to_datetime(end)
         num_hours = np.round((end-start).value/(60*60*10e8)).astype(int)
 
-        pred = self.model_result.predict(start=start, end=end, *args, **kwargs)
-        real = self.train_set.loc[start:end]
-        pred = pred.set_index(real.index)
+        real = self.dataclass.raw_data
+        pred = self.model_result.predict(*args, **kwargs)
         pred = self.dataclass.inverse_transform(pred)
-        real = self.dataclass.raw_data.loc[start:end]
+        pred = pred[start:end]
+        real = real[start:end]
 
         if plot:
             # Plot predictions
@@ -164,7 +164,6 @@ class VARModel(VARMAX):
                             )
                 axs[1].legend()
                 plt.show()
-
 
 
     def save(self, filename: str, remove_data: bool = False):

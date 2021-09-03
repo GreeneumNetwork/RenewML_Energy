@@ -27,7 +27,6 @@ INFO: main.py->summary: R2 effective_cloud_cover:p: 0.34165171181842946
 INFO: main.py->summary: R2 max_power_johnson: 0.9894789883917962
 INFO: main.py->summary: R2 max_power_gym: 0.9867310009041607
 
-
 gym & johnson only - order (2,0)
 INFO: main.py->summary: RMSE max_power_gym: 1801.1524088760511
 INFO: main.py->summary: RMSE max_power_johnson: 1472.6706182986068
@@ -110,5 +109,39 @@ INFO: arima.py->summary: AIC: 517424.24242739246
 INFO: arima.py->summary: Total MSE: 25891003.89303733
 INFO: arima.py->predict: RMSE max_power: 10601.167454071607
 
+---------------FIXED INVERSE TRANSFORM ------------------
+Arima, gym dataset, order (1,0,0)
+mean        -0.000403
+std       3646.075375
+min     -49268.332591
+25%       -232.701580
+50%          0.311200
+75%        228.633717
+max      43950.585554
+dtype: float64
+INFO: arima.py->summary: AIC: 668646.2838924332
+INFO: arima.py->summary: Total MSE: 13293483.095765783
+INFO: arima.py->predict: RMSE max_power: 2807.0056580271935
 
+arima, gym dataset, order (10, 0, 0)
+mean        -0.012691
+std       3460.017982
+min     -43141.798881
+25%       -544.137852
+50%         16.019709
+75%        518.032105
+max      39151.785049
+dtype: float64
 
+INFO: arima.py->summary: AIC: 665025.563713612
+INFO: arima.py->summary: Total MSE: 11971379.936877955
+INFO: arima.py->predict: RMSE max_power: 3334.4947791541013
+
+INFO: arima.py->summary: AIC: 656570.4606684014
+INFO: arima.py->summary: Total MSE: 9382832.089562071
+INFO: arima.py->predict: RMSE max_power: 7414.409139858844
+
+varmax, gym dataset, order (10, 0)
+INFO: var.py->predict: RMSE max_power: 3861.346343570932
+INFO: var.py->summary: AIC: 883866.5573182735
+INFO: var.py->summary: Total MSE: 10532250.594713956

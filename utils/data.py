@@ -1,6 +1,7 @@
 import logging
-
+from inspect import stack
 from copy import deepcopy
+from os.path import basename
 import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller
@@ -9,18 +10,15 @@ import seaborn as sns
 import numpy as np
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-
 class Data:
 
     def __init__(self,
-                 df: pd.DataFrame,
-                 logger: logging.Logger):
+                 df: pd.DataFrame):
 
         self.scaler_ = None
         self.lags = None
         self.df = df
-        self.logger = logger
-
+        self.logger = logging.getLogger(basename(stack()[-1].filename))
         self.raw_data = df
 
     def __repr__(self):
@@ -32,9 +30,9 @@ class Data:
     @classmethod
     def get_data(cls,
                  datafile,
-                 logger,
                  powerfile: str = None):
 
+        logger = logging.getLogger(basename(stack()[-1].filename))
         df = pd.read_csv(datafile, index_col='validdate', parse_dates=True)
         logger.info(f'Data file found at {datafile}')
         df.index = df.index.tz_localize(None)
@@ -44,7 +42,7 @@ class Data:
                                    parse_dates=True)
             df = pd.concat([df, power_df], axis=1, join='inner')
 
-        return cls(df, logger)
+        return cls(df)
 
     def transform(self,
                   lag: list or str,
@@ -110,6 +108,9 @@ class Data:
             new.index = index[l:]
             transformed.loc[new.index] = new
 
+        newcls.trunc = transformed.loc[np.setdiff1d(transformed.index, new.index)]
+        transformed = transformed.loc[new.index]
+
         # apply scaling
         if newcls.scaler == 'standard':
             newcls.scaler_ = StandardScaler()
@@ -129,8 +130,12 @@ class Data:
             df[df.columns] = self.scaler_.inverse_transform(df[df.columns])
 
         # prepend dataframe with initial values
-        start_idx = self.raw_data.index.get_loc(df.index[0])
-        x_i = pd.concat([self.raw_data.iloc[start_idx - np.max(self.lags):start_idx], df], join='inner', axis=0)
+        # start_idx = self.raw_data.index.get_loc(df.index[0])
+        try:
+            x_i = pd.concat([self.trunc, df], join='inner', axis=0)
+        except AttributeError as e:
+            raise e
+
 
         # invert_diff = lambda x, distance: [x[i] + x[i - distance] for i in range(len(x))]
         def invert_diff(x: pd.Series, i_l: int, i_lag: int):

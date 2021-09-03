@@ -111,13 +111,13 @@ class ARIMAModel(ARIMA):
         end = pd.to_datetime(end)
         num_hours = np.round((end - start).value / (60 * 60 * 10e8)).astype(int)
 
-        pred = self.model_result.predict(start=start, end=end)
-        real = self.train_set['max_power'].loc[start:end]
+        real = self.dataclass.raw_data['max_power']
+        pred = self.model_result.predict()
         real = real.to_frame()
         pred = pred.to_frame(name=real.columns[0])
-        pred = pred.set_index(real.index)
         pred = self.dataclass.inverse_transform(pred)
-        real = self.dataclass.raw_data['max_power'].loc[start:end].to_frame()
+        pred = pred[start:end]
+        real = real[start:end]
 
         if plot:
             # Plot predictions
