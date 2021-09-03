@@ -48,7 +48,6 @@ def get_logger(
 
     return logger
 
-
 def make_datasets(power_dataset: str):
     # Get and normalize data
     raw_data = Data.get_data(datafile='data/4Y_Historical.csv')
