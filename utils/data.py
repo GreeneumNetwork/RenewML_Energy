@@ -4,7 +4,8 @@ from copy import deepcopy
 from os.path import basename
 import pandas as pd
 import matplotlib.pyplot as plt
-from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.stattools import adfuller, grangercausalitytests
+from itertools import permutations
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 import seaborn as sns
 import numpy as np
@@ -30,17 +31,20 @@ class Data:
     @classmethod
     def get_data(cls,
                  datafile,
-                 powerfile: str = None):
+                 powerfile: str = None,
+                 dropna = True):
 
         logger = logging.getLogger(basename(stack()[-1].filename))
         df = pd.read_csv(datafile, index_col='validdate', parse_dates=True)
         logger.info(f'Data file found at {datafile}')
         df.index = df.index.tz_localize(None)
-
         if powerfile:
             power_df = pd.read_csv(powerfile, usecols=['timestamp', 'max_power'], index_col='timestamp',
                                    parse_dates=True)
             df = pd.concat([df, power_df], axis=1, join='inner')
+        df = df.asfreq('H')
+        if dropna:
+            df = df.dropna()
 
         return cls(df)
 
@@ -203,6 +207,32 @@ class Data:
 
             print(msg)
 
+    def granger(self, *args, **kwargs):
+        """
+        Use to display granger causality metrics up to lag.
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        for (col1, col2) in permutations(self.df.columns, 2):
+            g = grangercausalitytests(self.df[[col1, col2]], *args, **kwargs)
+            print('=' * 50)
+            print(f'\nGranger Causality Metrics {col2} on {col1}')
+            print('-' * 80)
+            print(f'{"Null Hypothesis":60}Lag\tF-Stat\tDecision')
+            print('-' * 80)
+            for (key, val) in g.items():
+                val = val[0]
+                if key == 1:
+                    print(f'{col2+" does not cause "+col1:60}', end='')
+                else:
+                    key = str(key).rjust(61)
+                print(f'{key}\t{val["ssr_ftest"][0]:0.2f}\t{"Reject" if val["ssr_ftest"][1]<=0.05 else "Accept"}')
+
+
+
+
+
     def plot_df(self):
         df = self.df
         for i in range(len(df.columns)):
@@ -216,21 +246,25 @@ class Data:
                 tick.set_rotation(45)
             plt.show()
 
-    def FFT(self, axs=None):
+    def FFT(self, raw=False, axs=None):
+
+        df = self.raw_data if raw else self.df
 
         if axs is None:
-            fig, axs = plt.subplots(len(self.df.columns), 1, sharex=True)
+            fig, axs = plt.subplots(len(df.columns), 1, sharex=True)
             fig.subplots_adjust(hspace=0)
+
         SAMPLE_RATE = 24 * 365  # h/year
 
-        for ax, col in enumerate(self.df.columns):
-            yf = np.fft.rfft(self.df[col])
-            xf = np.fft.rfftfreq(len(self.df[col]), 1 / SAMPLE_RATE)
+        for ax, col in enumerate(df.columns):
+            yf = np.fft.rfft(df[col])
+            xf = np.fft.rfftfreq(len(df[col]), 1 / SAMPLE_RATE)
             sns.lineplot(x=xf[xf < 800], y=np.abs(yf)[xf < 800], ax=axs[ax])
             axs[ax].text(.5, .9, col,
                          horizontalalignment='center',
                          verticalalignment='top',
                          transform=axs[ax].transAxes)
-            axs[ax].set_xlabel('Frequency $(year^{-1})$')
+            axs[ax].set_xlabel(None)
+        axs[-1].set_xlabel('Frequency $(year^{-1})$')
 
         return axs

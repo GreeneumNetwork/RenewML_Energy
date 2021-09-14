@@ -154,7 +154,7 @@ class ARIMAModel(ARIMA):
             ax.set_xlabel('Time (hr)')
             fig.suptitle('Real v. Predicted values 24h')
             if save_png:
-                plt.savefig(f'scratch/figures/transparent/arima_{save_png}', transparent=True)
+                plt.savefig(f'figures/transparent/arima_{save_png}', transparent=True)
             plt.show()
 
         return pred, real

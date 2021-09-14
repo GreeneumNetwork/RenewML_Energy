@@ -1,6 +1,7 @@
 from typing import Union
 import logging
 import os
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from .data import Data
@@ -48,7 +49,7 @@ def get_logger(
 
     return logger
 
-def make_datasets(power_dataset: str):
+def make_datasets(power_dataset: str) -> Data:
     # Get and normalize data
     raw_data = Data.get_data(datafile='data/4Y_Historical.csv')
 
@@ -86,3 +87,16 @@ def make_datasets(power_dataset: str):
     stationary.raw_data = stationary.raw_data.drop(columns=['diffuse_rad:W', 'direct_rad:W'])
 
     return stationary
+
+def config_plot():
+    SMALL_SIZE = 12
+    MEDIUM_SIZE = 14
+    BIGGER_SIZE = 18
+
+    plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
+    plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
+    plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
+    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title

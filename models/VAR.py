@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
 
 import greenium.utils.data
+from greenium.utils.utils import config_plot
 
 
 class VARModel(VARMAX):
@@ -29,10 +30,13 @@ class VARModel(VARMAX):
 
         self._init_var()
 
+        config_plot()
+
     def _init_var(self):
         super(VARModel, self).__init__(
             self.train_set,
             order=self.order)
+        self.logger.info(f'VARMax model initiated, order {self.order}')
 
     def split(self, train_percent):
 
@@ -41,8 +45,6 @@ class VARModel(VARMAX):
         test_set = self.dataset.iloc[stop_idx:]
         # self.train_set = self.train_set.set_index('validdate').asfreq('D')
         # self.test_set = self.test_set.set_index('validdate').asfreq('D')
-
-        self.logger.info(f'Test and train set successfully created.')
 
         return train_set, test_set
 
@@ -111,7 +113,7 @@ class VARModel(VARMAX):
                 axs[i].plot(real_vals, label='Real' if i == 0 else '_nolegend_', c='b')
                 axs[i].plot(pred_vals, label='Predicted' if i == 0 else '_nolegend_', c='r')
                 axs[i].set_title(label_dict[col][0], y=1.0, pad=-14)
-                axs[i].set_ylabel(label_dict[col][1], fontsize=8)
+                axs[i].set_ylabel(label_dict[col][1])
                 axs[i].set_ylim(
                     [None, np.amax([np.amax([real_vals, pred_vals]) * 1.4, np.amax([real_vals, pred_vals]) + 0.005])])
                 axs[i].text(0.1, 0.9, f'RMSE: {rmse:.3f}\n$R^2$: {r2:.3f}\n'
@@ -129,7 +131,7 @@ class VARModel(VARMAX):
             fig.legend()
             fig.suptitle('Real v. Predicted values 24h')
             if save_png:
-                plt.savefig(f'scratch/figures/transparent/varmax_{save_png}', transparent=True)
+                plt.savefig(f'figures/transparent/varmax_{save_png}', transparent=True)
             plt.show()
 
         return pred, real
@@ -139,10 +141,13 @@ class VARModel(VARMAX):
         sim = super(VARModel, self).simulate(params, nsimulations, **kwargs)
         return sim
 
-    def summary(self, plot=True):
+    def summary(self, plot=True, save_png=None):
 
-        self.logger.info(f'AIC: {self.model_result.aic}')
-        self.logger.info(f'Total MSE: {self.model_result.mse}')
+        self.logger.info(f'AIC: {self.model_result.aic}; AICC: {self.model_result.aicc}')
+        self.logger.info(f'BIC: {self.model_result.bic}')
+        self.logger.info(f'HQIC: {self.model_result.hqic}')
+        self.logger.info(f'Total RMSE: {np.sqrt(self.model_result.mse)}')
+        # self.logger.info(f'Model Parameter Standard Error: {self.model_result.bse}')
         print(self.model_result.summary())
 
         residuals = self.model_result.resid
@@ -163,7 +168,8 @@ class VARModel(VARMAX):
                             va='bottom',
                             )
                 axs[1].legend()
-                plt.show()
+                if save_png:
+                    plt.savefig(f'figures/transparent/residuals/varmax_{self.order}.png', transparent=True)
 
 
     def save(self, filename: str, remove_data: bool = False):
