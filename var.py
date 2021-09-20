@@ -28,28 +28,32 @@ def show_fft(datacls: Data, save_png=None):
 
 
 if __name__ == '__main__':
+    # retrieve logging utility to store logs.
+    # If you do not wish to store logs, remove log_file
     LOGGER = utils.get_logger(
         log_file=f'logs/{date.today()}',
         script_name=os.path.basename(__file__),
     )
 
-    save_str = 'gym'
+    # Specify which dataset (gym, johonson (for maabarot_johnson, or no_weather)
+    # Specify order of model to use in var model
+    dataset = 'gym'
     order = 10
 
-    stationary = utils.make_datasets(save_str)
+    # Prepare data for use in statespace model.
+    stationary = utils.make_datasets(dataset)
 
-    show_fft(stationary,
-             save_png=f'FFT_{save_str}')
-
-    for x in range(1, 24):
-        var = VARModel(stationary,
-                       order=(x, 0),
-                       )
-        var.fit()
-        var.predict(
-            start='2017-01-03 00:00:00',
-            end='2017-01-04 00:00:00',
-            save_png=f'real_v_pred_{save_str}_{order}.png'
-        )
-        var.save(f'{save_str}_order_{order}.pkl', remove_data=False)
-        var.summary()
+    # Declare model - inherits from statsmodels.tsa.VARModel
+    var = VARModel(stationary,
+                   order=(order, 0),
+                   load='models/saved_models/var_gym_order_10.pkl'
+                   )
+    var.fit()
+    var.predict(
+        start='2017-01-03 00:00:00',
+        end='2017-01-04 00:00:00',
+        save_png=f'real_v_pred_{dataset}_{order}.png'
+    )
+    # Save model results
+    # var.save(f'{save_str}_order_{order}.pkl', remove_data=False)
+    var.summary()

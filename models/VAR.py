@@ -58,6 +58,9 @@ class VARModel(VARMAX):
         if self.load:
             self.model_result = VARMAXResults.load(self.load)
             self.logger.info(f'model loaded from {self.load}')
+            if self.model_result.model.order != self.order:
+                raise ValueError(
+                    f'Specified order {self.order} is not equal to that of loaded model {self.model_result.model.order}')
             return self.model_result
 
         self.model_result = super(VARModel, self).fit(maxiter=1000, disp=False)
@@ -79,13 +82,17 @@ class VARModel(VARMAX):
         """
         start = pd.to_datetime(start)
         end = pd.to_datetime(end)
-        num_hours = np.round((end-start).value/(60*60*10e8)).astype(int)
 
         real = self.dataclass.raw_data
-        pred = self.model_result.predict(*args, **kwargs)
-        pred = self.dataclass.inverse_transform(pred)
-        pred = pred[start:end]
+        # pred = self.model_result.predict(*args, **kwargs)
+        pred_results = self.model_result.get_prediction()
+        pred_mean = self.dataclass.inverse_transform(pred_results.predicted_mean)
+        pred = pred_mean[start:end]
         real = real[start:end]
+
+        ci_upper = pred + 1.96 * pred_results.se_mean[start:end]
+        ci_lower = pred - 1.96 * pred_results.se_mean[start:end]
+        mean_ci = (1.96 * pred_results.se_mean).mean()
 
         if plot:
             # Plot predictions
@@ -101,23 +108,29 @@ class VARModel(VARMAX):
                           'precip_1h:mm': ('Precipitation', 'mm/hr')}
 
             for i, col in enumerate(real.columns):
-                real_vals = real[col].loc[start:end]
-                pred_vals = pred[col].loc[start:end]
+
+                real_vals = real[col]
+                pred_vals = pred[col]
+                ci_upper_vals = ci_upper[col]
+                ci_lower_vals = ci_lower[col]
+
                 rmse = mean_squared_error(real_vals, pred_vals, squared=False)
-                mae = mean_absolute_error(real_vals, pred_vals)
                 r2 = r2_score(real_vals, pred_vals)
+                mape = np.mean((np.abs(real_vals - pred_vals)) / (np.amax(real_vals) - np.amin(real_vals))).item() * 100
                 self.logger.info(f'RMSE {col}: {rmse}')
-                if col == 'max_power':
-                    real_vals /= 1000
-                    pred_vals /= 1000
+
                 axs[i].plot(real_vals, label='Real' if i == 0 else '_nolegend_', c='b')
                 axs[i].plot(pred_vals, label='Predicted' if i == 0 else '_nolegend_', c='r')
+                axs[i].fill_between(pred_vals.index, ci_lower_vals, ci_upper_vals, color='r', alpha=0.1,
+                                    label='95% C.I.' if i == 0 else '_nolegend_')
                 axs[i].set_title(label_dict[col][0], y=1.0, pad=-14)
                 axs[i].set_ylabel(label_dict[col][1])
                 axs[i].set_ylim(
                     [None, np.amax([np.amax([real_vals, pred_vals]) * 1.4, np.amax([real_vals, pred_vals]) + 0.005])])
-                axs[i].text(0.1, 0.9, f'RMSE: {rmse:.3f}\n$R^2$: {r2:.3f}\n'
-                                      f'MAPE: {mae/(np.amax(real_vals)-np.amin(real_vals)):0.3f}',
+                axs[i].text(0.1, 0.9, f'RMSE: {rmse:.2f}  '
+                                      f'$R^2$: {r2:.2f}\n'
+                                      f'MAPE: {mape:0.2f}%  '
+                                      f'95% C.I.: $\pm${mean_ci[col]:.2f}',
                             horizontalalignment='left',
                             verticalalignment='top',
                             fontsize=8,
@@ -170,7 +183,6 @@ class VARModel(VARMAX):
                 axs[1].legend()
                 if save_png:
                     plt.savefig(f'figures/transparent/residuals/varmax_{self.order}.png', transparent=True)
-
 
     def save(self, filename: str, remove_data: bool = False):
         self.model_result.save(f'models/saved_models/var_{filename}', remove_data=remove_data)

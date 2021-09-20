@@ -16,15 +16,14 @@ if __name__ == '__main__':
 
 
     save_str = 'gym'
-    order = (10,0,0)
+    order = 10
 
     stationary = utils.make_datasets(save_str)
-
     arima = ARIMAModel(stationary,
-                       order=order)
+                       order=(order, 0, 0))
     arima.fit()
-    arima.summary()
-    arima.predict(start='2017-01-03 00:00:00',
-                  end='2017-01-04 00:00:00',
-                  # save_png=f'real_v_pred_{save_str}_{order}.png'
-                  )
+    arima.summary(plot=False)
+    # arima.predict(start='2017-01-03 00:00:00',
+    #                   end='2017-01-04 00:00:00',
+    #                   save_png=f'real_v_pred_{save_str}_{order}.png'
+    #                   )

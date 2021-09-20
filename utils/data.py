@@ -32,7 +32,8 @@ class Data:
     def get_data(cls,
                  datafile,
                  powerfile: str = None,
-                 dropna = True):
+                 dropna: bool = True,
+                 rescale_power: bool = True):
 
         logger = logging.getLogger(basename(stack()[-1].filename))
         df = pd.read_csv(datafile, index_col='validdate', parse_dates=True)
@@ -41,6 +42,9 @@ class Data:
         if powerfile:
             power_df = pd.read_csv(powerfile, usecols=['timestamp', 'max_power'], index_col='timestamp',
                                    parse_dates=True)
+            logger.info(f'Power file found at {powerfile}')
+            if rescale_power == True:
+                power_df /= 1000
             df = pd.concat([df, power_df], axis=1, join='inner')
         df = df.asfreq('H')
         if dropna:
@@ -56,8 +60,8 @@ class Data:
         """Make input data stationary, resampling to daily frequency. Input choice of {day|week|month|season|year}
         for differencing or list of multiple for multi-order differencing.
         Options:
-            - lag: {day|week|month|season|year} (list)
-            - Norm: [ minmax | standard ]
+        :param lag: {day|week|month|season|year} (list)
+        :param scaler: [ minmax | standard ]
         """
         # make copy of class
         if copy:
@@ -80,8 +84,6 @@ class Data:
         # resample dataframe to daily values
         if resample:
             data_mean = transformed.resample('D').mean()
-            # data_min = transformed.resample('D').min()
-            # data_max = transformed.resample('D').max()
             newcls.logger.info(f'Resample shape: {data_mean.shape}')
             newcls.logger.info(f'Daily mean values:\n{data_mean.describe().to_string()}')
             transformed = data_mean
@@ -132,6 +134,9 @@ class Data:
 
         if self.scaler:
             df[df.columns] = self.scaler_.inverse_transform(df[df.columns])
+
+        if isinstance(df, pd.Series):
+            df = df.to_frame()
 
         # prepend dataframe with initial values
         # start_idx = self.raw_data.index.get_loc(df.index[0])
@@ -228,10 +233,6 @@ class Data:
                 else:
                     key = str(key).rjust(61)
                 print(f'{key}\t{val["ssr_ftest"][0]:0.2f}\t{"Reject" if val["ssr_ftest"][1]<=0.05 else "Accept"}')
-
-
-
-
 
     def plot_df(self):
         df = self.df
