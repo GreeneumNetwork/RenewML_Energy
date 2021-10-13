@@ -38,23 +38,26 @@ if __name__ == '__main__':
     # Specify which dataset (gym, johonson (for maabarot_johnson, or no_weather)
     # Specify order of model to use in var model
     order = 10
+    filelist = ['data/maabarot_trima_1hr_data_05_10_2021.csv', 'data/maabarot_trima_15min.csv']
+    for file in filelist:
+        dataset = Data.get_data(datafile='data/4Y_Historical.csv',
+                                powerfile=file)
 
-    dataset = Data.get_data(datafile='data/4Y_Historical.csv',
-                            powerfile='data/maabarot_trima_15min.csv')
+        stationary = dataset.transform(resample=None, lag=['hour', 'day'])
 
-    stationary = dataset.transform(resample='1Minute', lag=['Minute', 'day'])
-
-    # Declare model - inherits from statsmodels.tsa.VARModel
-    var = VARModel(stationary,
-                   order=(order, 0),
-                   # load='models/saved_models/var_gym_order_10.pkl'
-                   )
-    var.fit()
-    var.predict(
-        start='2019-10-03 00:00:00',
-        end='2019-10-04 00:00:00',
-        save_png=f'real_v_pred_{dataset.filename}_{order}.png'
-    )
-    # Save model results
-    # var.save(f'{save_str}_order_{order}.pkl', remove_data=False)
-    var.summary()
+        # Declare model - inherits from statsmodels.tsa.VARModel
+        var = VARModel(stationary,
+                       order=(order, 0),
+                       )
+        var.fit()
+        var.predict(
+            start='2019-10-03 00:00:00',
+            end='2019-10-04 00:00:00',
+            save_png=f'real_v_pred_{dataset.filename}_{order}.png'
+        )
+        plt.close()
+        # Save model results
+        var.save(f'{maabarot_trima}_order_{order}.pkl', remove_data=False)
+        plt.close()
+        var.summary()
+        plt.close()

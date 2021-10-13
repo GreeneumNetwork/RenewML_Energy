@@ -36,7 +36,6 @@ class Data():
     def get_data(cls,
                  datafile,
                  powerfile: str = None,
-                 dropna: bool = True,
                  rescale_power: bool = True):
 
         logger = logging.getLogger(basename(stack()[-1].filename))
@@ -49,39 +48,56 @@ class Data():
 
         if powerfile:
             try:
+                #load powerfile from original source
                 power_df = pd.read_csv(powerfile, usecols=['timestamp', 'max_power'], index_col='timestamp',
-                                       parse_dates=True)
+                                       parse_dates=True).sort_index()
+                raw_power = power_df.copy()
             except ValueError:
-                #if files are from 15 minute data
-                logger.info(f'15 Minute interval power file found at {powerfile}')
+                #Load powerfile from other source
                 power_df = pd.read_csv(powerfile, usecols=['Date_&_Time', 'Power', 'Irradiance'],
                                        index_col='Date_&_Time',
                                        parse_dates=True,
                                        na_values='None'
-                                       )
+                                       ).sort_index()
                 raw_power = power_df.copy()
                 power_df = power_df.rename(columns={'Power': 'max_power', 'Irradiance': 'global_rad:W'})
+                df = df.drop(columns=['global_rad:W'])
                 power_df.index = power_df.index.rename('timestamp')
 
-                for col in power_df.columns:
-                    power_df = power_df[power_df[col].isnull().astype(int).groupby(
-                        power_df[col].notnull().astype(int).cumsum()).cumsum() <= 1]
-                power_df = power_df.dropna(how='all').asfreq('15T')
-                power_df.iloc[0:5] = power_df.iloc[0:5].fillna(method='bfill')
-                power_df = power_df.groupby([power_df.index.minute, power_df.index.hour]).fillna(method='ffill')
-                power_df = power_df.interpolate(method='time').dropna().asfreq('15T').interpolate(method='time')
-                df = df.asfreq('15T').interpolate(method='time')
-                df = df.drop(columns=['global_rad:W'])
+            logger.info(f'Power file found at {powerfile}')
+
+            #remove duplicates
+            if power_df.index.duplicated().any():
+                power_df = power_df.reset_index()
+                dup = power_df[power_df['timestamp'].duplicated(keep=False)]
+                drop_index = dup[dup[['max_power', 'global_rad:W']].isna().all(axis=1)].index
+                power_df = power_df.drop(drop_index)
+                drop_df = power_df[power_df['timestamp'].duplicated(keep=False)]
+                power_df = power_df.drop(drop_df.groupby('timestamp')['max_power'].idxmin())
+                power_df = power_df.set_index('timestamp')
+
+
+            df = pd.merge_asof(df, power_df, left_index=True, right_index=True)
+            
+            # format missing data
+            df_freq = pd.infer_freq(df.index[0:10])
+            df = df.asfreq(df_freq).interpolate(method='time')
+            for col in df.columns:
+                df = df[df[col].isnull().astype(int).groupby(
+                    df[col].notnull().astype(int).cumsum()).cumsum() <= 1]
+            df.iloc[0:5] = df.iloc[0:5].fillna(method='bfill')
+            df = df.groupby([df.index.minute, df.index.hour]).fillna(method='ffill')
+            df = df.interpolate(method='time').dropna().asfreq(df_freq).interpolate(method='time')
+            df = df.asfreq(df_freq).interpolate(method='time')
 
             if rescale_power:
                 power_df['max_power'] /= 1000
-            df = pd.concat([df, power_df], axis=1, join='inner')
-        df = df.asfreq(pd.infer_freq(df.index))
 
-        if dropna:
-            df = df.dropna()
+            
 
         return cls(df, Path(powerfile).stem, raw_weather, raw_power)
+
+
 
     def transform(self,
                   lag: list or str,
@@ -108,7 +124,6 @@ class Data():
         transformed = df.copy()
 
         lag_dict = {'15MINUTES': pd.Timedelta('15T'),
-                    'MINUTE': pd.Timedelta('1T'),
                     'HOUR': pd.Timedelta('1H'),
                     'DAY': pd.Timedelta('1D'),
                     'WEEK': pd.Timedelta('1W'),
@@ -138,7 +153,7 @@ class Data():
             for i in lag:
                 lags.append(lag_dict[i.upper()])
         except KeyError:
-            raise KeyError(f'{i} not valid choice. Choose from {{15minutes|Minute|hour|day|week|month|season|year}}')
+            raise KeyError(f'{i} not valid choice. Choose from {{15minutes|hour|day|week|month|season|year}}')
 
         newcls.lags = lags
         # apply differencing
@@ -152,7 +167,6 @@ class Data():
             transformed.loc[new.index] = new
 
         newcls.trunc = transformed.loc[np.setdiff1d(transformed.index, new.index)]
-        transformed = transformed.loc[new.index]
 
         # apply scaling
         if newcls.scaler == 'standard':
@@ -184,11 +198,11 @@ class Data():
 
         # invert_diff = lambda x, distance: [x[i] + x[i - distance] for i in range(len(x))]
         def invert_diff(x: pd.Series, i_l: pd.Timestamp, i_lag: pd.Timedelta):
-            arr = x.values
             for i in x[i_l:].index:
-                s = x[i] + x[i - i_lag]
+                lagged = i - i_lag
+                s = x[i] + x[lagged]
                 x[i] = s
-            return pd.Series(data=arr, index=x.index)
+            return x
 
         l = np.sum(self.lags) + x_i.index[0]
         for lag_num in reversed(self.lags):

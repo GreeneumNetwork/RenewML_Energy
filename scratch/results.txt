@@ -144,7 +144,7 @@ INFO: arima.py->predict: RMSE max_power: 7414.409139858844
 varmax, gym dataset, order (10, 0)
 INFO: var.py->predict: RMSE max_power: 3861.346343570932
 INFO: var.py->summary: AIC: 883866.5573182735
-INFO: var.py->summary: Total MSE: 10532250.594713956
+INFO: var.py->summary: Total MSE: 4713956
 
 varmax trima 15m, order (10, 0)
                                                 coef    std err          z      P>|z|      [0.025      0.975]

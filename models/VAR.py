@@ -172,6 +172,7 @@ class VARModel(VARMAX):
 
         residuals = self.model_result.resid
         print(residuals.describe())
+        print("Sum of Squared Error\n", np.sqrt((residuals**2).mean()))
 
         if plot:
             for col in residuals.columns:
