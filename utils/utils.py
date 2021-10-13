@@ -51,7 +51,7 @@ def get_logger(
 
 def make_datasets(power_dataset: str,
                   lags: list = ['hour', 'day'],
-                  resample: bool = False,
+                  resample: str = None,
                   scaler: str = None) -> Data:
 
     """

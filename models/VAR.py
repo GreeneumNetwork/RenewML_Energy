@@ -6,6 +6,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from statsmodels.tsa.statespace.varmax import VARMAX, VARMAXResults
 import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
+from datetime import datetime
 
 import greenium.utils.data
 from greenium.utils.utils import config_plot
@@ -63,8 +64,10 @@ class VARModel(VARMAX):
                     f'Specified order {self.order} is not equal to that of loaded model {self.model_result.model.order}')
             return self.model_result
 
+        t_start = datetime.now()
         self.model_result = super(VARModel, self).fit(maxiter=1000, disp=False)
-        self.logger.info('Trained and fit')
+        t_end = datetime.now()
+        self.logger.info(f'Trained and fit. Training time = {t_end - t_start}')
 
         return self.model_result
 
@@ -87,6 +90,10 @@ class VARModel(VARMAX):
         # pred = self.model_result.predict(*args, **kwargs)
         pred_results = self.model_result.get_prediction()
         pred_mean = self.dataclass.inverse_transform(pred_results.predicted_mean)
+
+        if start not in pred_mean.index or end not in pred_mean.index:
+            raise IndexError(f'Start and end dates out of range for predictions {pred_mean.index[0]} to {pred_mean.index[-1]}')
+
         pred = pred_mean[start:end]
         real = real[start:end]
 
