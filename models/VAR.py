@@ -85,6 +85,7 @@ class VARModel(VARMAX):
         """
         start = pd.to_datetime(start)
         end = pd.to_datetime(end)
+        idx = pd.date_range(start=start, end=end, freq=self.dataset.index.freq)
 
         real = self.dataclass.raw_data
         # pred = self.model_result.predict(*args, **kwargs)
@@ -94,11 +95,11 @@ class VARModel(VARMAX):
         if start not in pred_mean.index or end not in pred_mean.index:
             raise IndexError(f'Start and end dates out of range for predictions {pred_mean.index[0]} to {pred_mean.index[-1]}')
 
-        pred = pred_mean[start:end]
-        real = real[start:end]
+        pred = pred_mean.loc[idx]
+        real = real.loc[idx]
 
-        ci_upper = pred + 1.96 * pred_results.se_mean[start:end]
-        ci_lower = pred - 1.96 * pred_results.se_mean[start:end]
+        ci_upper = pred + 1.96 * pred_results.se_mean.loc[idx]
+        ci_lower = pred - 1.96 * pred_results.se_mean.loc[idx]
         mean_ci = (1.96 * pred_results.se_mean).mean()
 
         if plot:
@@ -124,7 +125,7 @@ class VARModel(VARMAX):
                 rmse = mean_squared_error(real_vals, pred_vals, squared=False)
                 r2 = r2_score(real_vals, pred_vals)
                 mape = np.mean((np.abs(real_vals - pred_vals)) / (np.amax(real_vals) - np.amin(real_vals))).item() * 100
-                self.logger.info(f'RMSE {col}: {rmse}')
+                self.logger.info(f'Prediction interval RMSE {col}: {rmse}')
 
                 axs[i].plot(real_vals, label='Real' if i == 0 else '_nolegend_', c='b')
                 axs[i].plot(pred_vals, label='Predicted' if i == 0 else '_nolegend_', c='r')
@@ -172,7 +173,7 @@ class VARModel(VARMAX):
 
         residuals = self.model_result.resid
         print(residuals.describe())
-        print("Sum of Squared Error\n", np.sqrt((residuals**2).mean()))
+        print("Root Sum of Squared Error\n", np.sqrt((residuals**2).mean()))
 
         if plot:
             for col in residuals.columns:

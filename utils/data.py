@@ -20,10 +20,12 @@ class Data():
 
         self.scaler_ = None
         self.lags = None
+        self.trunc = None
         self.df = df
         self.logger = logging.getLogger(basename(stack()[-1].filename))
         self.raw_data = df
         self.raw_weather = raw_weather
+        self.raw_power = raw_power
         self.filename = filename
 
     def __repr__(self):
@@ -76,24 +78,30 @@ class Data():
                 power_df = power_df.drop(drop_df.groupby('timestamp')['max_power'].idxmin())
                 power_df = power_df.set_index('timestamp')
 
+            df_freq = pd.infer_freq(df[df.notna().all(axis=1)].index[0:10])
+            power_freq = pd.infer_freq(power_df[power_df.notna().all(axis=1)].index[0:10])
+            #set overall freq to whichever is finer
+            if df_freq > power_freq:
+                df = df.asfreq(power_freq).interpolate(method='time')
+                df_freq = power_freq
+                logger.warning(f'Unequal frequencies in power and weather data. Attempting to merge to {power_freq}')
+            elif power_freq > df_freq:
+                power_df = power_df.asfreq(df_freq).interpolate(method='time')
+                logger.warning(f'Unequal frequencies in power and weather data. Attempting to merge to {df_freq}.')
+
 
             df = pd.merge_asof(df, power_df, left_index=True, right_index=True)
             
             # format missing data
-            df_freq = pd.infer_freq(df.index[0:10])
-            df = df.asfreq(df_freq).interpolate(method='time')
             for col in df.columns:
                 df = df[df[col].isnull().astype(int).groupby(
                     df[col].notnull().astype(int).cumsum()).cumsum() <= 1]
-            df.iloc[0:5] = df.iloc[0:5].fillna(method='bfill')
+            df = df.drop(df.index[0], axis=0)
             df = df.groupby([df.index.minute, df.index.hour]).fillna(method='ffill')
             df = df.interpolate(method='time').dropna().asfreq(df_freq).interpolate(method='time')
-            df = df.asfreq(df_freq).interpolate(method='time')
 
             if rescale_power:
-                power_df['max_power'] /= 1000
-
-            
+                df['max_power'] /= 1000
 
         return cls(df, Path(powerfile).stem, raw_weather, raw_power)
 
@@ -164,9 +172,10 @@ class Data():
             l += lag_num
             new = transformed.apply(lambda x: diff(x, l, lag_num), axis=0)
             new.index = transformed[l:].index
-            transformed.loc[new.index] = new
+            transformed[l:] = new
 
         newcls.trunc = transformed.loc[np.setdiff1d(transformed.index, new.index)]
+        transformed = new
 
         # apply scaling
         if newcls.scaler == 'standard':

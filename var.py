@@ -37,27 +37,30 @@ if __name__ == '__main__':
 
     # Specify which dataset (gym, johonson (for maabarot_johnson, or no_weather)
     # Specify order of model to use in var model
-    order = 10
-    filelist = ['data/maabarot_trima_1hr_data_05_10_2021.csv', 'data/maabarot_trima_15min.csv']
-    for file in filelist:
-        dataset = Data.get_data(datafile='data/4Y_Historical.csv',
-                                powerfile=file)
+    order = 1
+    file = 'data/maabarot_trima_15min.csv'
 
-        stationary = dataset.transform(resample=None, lag=['hour', 'day'])
+    dataset = Data.get_data(datafile='data/4Y_Historical.csv',
+                            powerfile=file, rescale_power=False)
 
-        # Declare model - inherits from statsmodels.tsa.VARModel
-        var = VARModel(stationary,
-                       order=(order, 0),
-                       )
-        var.fit()
-        var.predict(
-            start='2019-10-03 00:00:00',
-            end='2019-10-04 00:00:00',
-            save_png=f'real_v_pred_{dataset.filename}_{order}.png'
-        )
-        plt.close()
-        # Save model results
-        var.save(f'{maabarot_trima}_order_{order}.pkl', remove_data=False)
-        plt.close()
-        var.summary()
-        plt.close()
+    # if dataset.df.index.freqstr != '15T':
+    #     stationary = dataset.transform(resample=None, lag=['hour', 'day'])
+    # else:
+    #     stationary = dataset.transform(resample=None, lag=['15Minutes', 'day'])
+    stationary = dataset.transform(resample='1H', lag=['hour', 'day'])
+
+
+    # Declare model - inherits from statsmodels.tsa.VARModel
+    var = VARModel(stationary,
+                   order=(order, 0),
+                   # load='models/saved_models/var_maabarot_trima_order_1.pkl'
+                   )
+    var.fit()
+    var.predict(
+        start='2019-10-03 00:00:00',
+        end='2019-10-04 00:00:00',
+        save_png=f'real_v_pred_{dataset.filename}_{order}.png'
+    )
+    # Save model results
+    var.summary()
+    # var.save(f'maabarot_trima_order_{order}.pkl', remove_data=False)
